@@ -18,24 +18,13 @@ else:
     from PyQt4 import QtCore, QtGui as QtWidgets
 
 
-REV_JS="""
-document.onkeydown=function(e){
- if("1234".match(e.key))return false;
- if("49 50 51 52".match(e.keyCode))return false;
-}
-window.setTimeout(function(){
- document.onkeydown=function(e){return true;}
-},%d*1000);
-"""
+
+ROMee_State = False
 
 #JS Timer won't affect log stats, for display only.
 BT_JS="""
 maxTime=%d
 time=0
-document.onkeydown=function(e){
- if("1234".match(e.key))return false;
- if("49 50 51 52".match(e.keyCode))return false;
-}
 btn=document.querySelectorAll('table table button');
 for(i=0;i<btn.length;i++){
  btn[i].disabled=true;
@@ -46,18 +35,24 @@ window.setTimeout(function(){
   btn[i].disabled=false;
   btn[i].setAttribute('style','');
  }
- document.onkeydown=function(e){return true;}
 },maxTime*1000);
 """
 
 
+def keys_off(boo):
+    global ROMee_State
+    ROMee_State=boo
+
 def eval(delay):
+    keys_off(True)
+
     if ANKI21:
         mw.reviewer.bottom.web.page().runJavaScript(BT_JS%delay)
-        mw.reviewer.web.page().runJavaScript(REV_JS%delay)
     else:
         mw.reviewer.bottom.web.eval(BT_JS%delay)
-        mw.reviewer.web.eval(REV_JS%delay)
+
+    #timer to re-enable keybind
+    QTimer.singleShot(delay*1000, lambda: keys_off(False))
 
 
 def showEaseButtons(self):
@@ -72,6 +67,14 @@ def showEaseButtons(self):
         eval(3)
 
 Reviewer._showEaseButtons = wrap(Reviewer._showEaseButtons, showEaseButtons, 'after')
+
+
+#Prevent key bypass
+def answerCard(self, ease, _old):
+    if ROMee_State: return
+    _old(self, ease)
+Reviewer._answerCard = wrap(Reviewer._answerCard, answerCard, 'around')
+
 
 
 ##################################################
