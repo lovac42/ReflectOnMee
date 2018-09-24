@@ -2,7 +2,7 @@
 # Copyright: (C) 2018 Lovac42
 # Support: https://github.com/lovac42/ReflectOnMee
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
-# Version: 0.0.2
+# Version: 0.0.3
 
 
 from aqt import mw
@@ -17,6 +17,13 @@ if ANKI21:
 else:
     from PyQt4 import QtCore, QtGui as QtWidgets
 
+
+
+#=== CONFIGS ===================
+
+AFFECTS_FILTERED_DECKS = False
+
+#=== END_CONFIGS ===============
 
 
 ROMee_State = False
@@ -56,14 +63,21 @@ def eval(delay):
 
 
 def showEaseButtons(self):
-    conf=mw.col.decks.confForDid(self.card.did)
+    card=self.card
+    if card.odid==0: #regular decks
+        did=card.did
+    elif not AFFECTS_FILTERED_DECKS:
+        return
+    else: #filtered decks
+        did=card.odid
+    conf=mw.col.decks.confForDid(did)
     limit=conf.get("rgs_limit", 0)
     if limit<1: return
 
     delay=conf.get("rgs_pause", 5)
-    if (self.card.timeTaken()//1000)>limit:
+    if (card.timeTaken()//1000)>limit:
         eval(delay)
-    elif self.card.queue==1:
+    elif card.queue==1:
         eval(3)
 
 Reviewer._showEaseButtons = wrap(Reviewer._showEaseButtons, showEaseButtons, 'after')
